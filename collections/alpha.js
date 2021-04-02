@@ -18,7 +18,7 @@ unless the vessel's motor is on.
     'The vessel cannot handle so much chop, vessel stall imminent'
 */
 // const statechainA = [{ tokens: 'P1 P2 P3', parsed: '', index: 0 }]
-const baseRegexes = [/[P]/, /[\s]/, /[T]/, /[1]/, /[2]/, /[3]/]
+const baseRegexes = [/[P]/, /[\s]/, /[T]/, /[F]/, /[1]/, /[2]/, /[3]/]
 const { E, isError } = require('../library/err')
 const { fitSpline } = require('../library/spline')
 // SemanticInformationBuilder --------------------------------------------------
@@ -73,7 +73,7 @@ async function ParserGenerator (VesselConstraints) {
     }
   }
 
-  const [ P, F, T, $1, $2, $3 ] = baseTokens
+  const [ P, S, T, F, $1, $2, $3 ] = baseTokens
   const tokensToCompound = [ [ P, $1 ], [ P, $2 ], [ P, $3 ], [ T, $1 ], [ T, $2 ], [ T, $3 ] ]
   const compoundTokens = []
   for (var i = 0; i < tokensToCompound.length; i++) {
@@ -83,18 +83,24 @@ async function ParserGenerator (VesselConstraints) {
   }
 
   const [ P1, P2, P3, T1, T2, T3 ] = compoundTokens
-  const parseFromTokens = parseFromλ([...compoundTokens, F])
+  const parseFromTokens = parseFromλ([...compoundTokens, S, F])
 
   if (isError(parseFromTokens)) {
     return parseFromTokens
   } else {
-    const times5 = [parseFromTokens, parseFromTokens, parseFromTokens, parseFromTokens, parseFromTokens]
-    const parse5OfAnyToken = parseManyλ(times5)
-    if (isError(parse5OfAnyToken)) return parse5OfAnyToken
     async function Parser (Sentence) {
+      const timesN = []
+      for (var i = 0; i < ((Sentence.string.split(' ').length * 2) - 1) ; i++) {
+        timesN.push(parseFromTokens)
+      }
+      const parseNOfAnyToken = parseManyλ(timesN)
+      if (isError(parseNOfAnyToken)) return parseNOfAnyToken
       const statechain = [{ tokens: Sentence.string, parsed: '', index: 0 }]
-      const result = parse5OfAnyToken(statechain)
-      const Parsed = { ParseResult: result, SemanticInformation: "Hoorah!" }
+      const result = parseNOfAnyToken(statechain)
+      const Parsed = {
+        ParseResult: result,
+        SemanticInformation: 'All tokens parsed successfully'
+      }
       Parsed.vskwpType = 'Parsed'
       return Parsed
     }
@@ -144,7 +150,23 @@ PreProcessor.vskwpType = 'PreProcessor'
 
 // Tokeniser -------------------------------------------------------------------
 async function Tokeniser (PreProcessedWaveData) {
-  const Sentence = { string: 'P1 P2 P3' }
+  const Sentence = { string: [] }
+  for (var i = 0; i < PreProcessedWaveData.pnt.y.length; i++) {
+    switch (PreProcessedWaveData.pnt.y[i]) {
+      case 10:
+        Sentence.string.push('F')
+        break;
+      case 5:
+        Sentence.string.push('T1')
+        break;
+      case 15:
+        Sentence.string.push('P1')
+        break;
+      default:
+      console.log('FUUUUCK')
+    }
+  }
+  Sentence.string = Sentence.string.join(' ')
   Sentence.vskwpType = 'Sentence'
   return Sentence
 }

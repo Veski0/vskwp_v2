@@ -104,8 +104,6 @@ async function DevModeλ (Options) {
   return DevMode
 }
 
-ParserGeneratorUnitλ
-
 // const ProMode = (Options) => (VesselData, WaveData) => {
 //   const { VesselConstraintGenerator, ParserGenerator, PreProcessor, Tokeniser } = Options
 //   const Parser = ParserGeneratorUnit(VesselConstraintGenerator, ParserGenerator)(VesselData)

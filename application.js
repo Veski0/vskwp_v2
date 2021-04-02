@@ -27,7 +27,9 @@ async function application(collection) {
   }
   const DevMode = await DevModeλ(Options)
   const Parsed = await DevMode(VesselData, WaveData)
-  console.log(Parsed)
+  console.log("Parse Complete")
+  console.log(`The Statechain was ${Parsed.ParseResult.length} blocks long.`)
+  console.log(`The availlable Semantic Information was "${Parsed.SemanticInformation}"`)
 }
 
 application(alpha)

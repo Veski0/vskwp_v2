@@ -1,7 +1,7 @@
 const Spline = require('cubic-spline')
 
 const fitSpline = (data, factor) => {
-  console.log('fitting a spline', 'this may take some time')
+  console.log('Spline fitting takes a few seconds...')
   const spline = new Spline(data.x, data.y)
   const fitted = { x: [], y: [] }
   for (let i = 0; i < data.x.length * factor; i++) {
