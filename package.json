@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "cubic-spline": "^3.0.3",
+    "nodeplotlib": "^0.7.3",
+    "readline-sync": "^1.4.10",
+    "tape": "^5.2.2"
+  }
+}
