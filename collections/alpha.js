@@ -1,63 +1,40 @@
 // 'alpha' Description --------------------------------------------------------
 /*
 - WaveData tracks gravity and uses m/s^2 as its unit.
+
 - Token generation is based on analysing a 2D graph one datapoint at a time,
 with peaks being determined by the datapoint's linear distance from the average.
-- Three levels of peaks and three levels of troughs, with one flat marker.
-- The vessel's width is used, using the given pragma that a vessel cannot handle
-a wave higher or lower than the average water height than that vessel is wide.
-- The vessel's sail and motor boolean, and the vessel's length are used, using
-the given pragma that a vessel will stall if it encounters more than a certain
-number of high waves wthin a given period based on the length of the vessel,
-unless the vessel's motor is on.
+
+- One level of peaks and troughs, with one flat marker.
+
+- The pars consists of a simple pass to the check the tokens.
+
 - Uses the tokens:
-    P1, P2, P3, F, T1, T2, T3
-- Gives SemanticInformation in the forms:
-    'The peaks are currently too high for this vessel',
-    'The troughs are currently too low for this vessel',
-    'The vessel cannot handle so much chop, vessel stall imminent'
+    P1, F, T1
+
+- Gives SemanticInformation in the form:
+    'The waveform looks correct.',
 */
-// const statechainA = [{ tokens: 'P1 P2 P3', parsed: '', index: 0 }]
-const baseRegexes = [/[P]/, /[\s]/, /[T]/, /[F]/, /[1]/, /[2]/, /[3]/]
+const baseRegexes = [/[P]/, /[\s]/, /[T]/, /[F]/, /[1]/]
 const { E, isError } = require('../library/err')
 const { fitSpline } = require('../library/spline')
-// SemanticInformationBuilder --------------------------------------------------
-async function SemanticInformationBuilder () {
 
+
+// SemanticInformationBuilder --------------------------------------------------
+async function SemanticInformationBuilder (correct) {
+  return `The waveform looks ${correct ? 'correct' : 'incorrect'}.`
 }
 
 
 // VesselConstraintGenerator ---------------------------------------------------
 async function VesselConstraintGenerator (VesselData) {
-  const { length, width, motor, sail } = VesselData
-  const VesselConstraints = {
-    peak: { max: 0 },
-    trough: { max: 0 },
-    period: {
-      size: 0,
-      count: 0
-    }
-  }
-  // "The vessel's width is used, using the given pragma that a vessel cannot
-  // handle a wave higher or lower than the average water height than that
-  // vessel is wide."
-  VesselConstraints.peak.max = width
-  VesselConstraints.trough.max = width
-  // "The vessel's sail and motor boolean, and the vessel's length, are used,
-  // using the given pragma that a vessel will stall if it encounters more than
-  // a certain number of high waves within a given period based on the length of
-  // the vessel, unless the vessel's motor is on."
-  if (!motor) {
-    VesselConstraints.period.size = 2
-    VesselConstraints.period.count = 5 * length
-  } else {
-    VesselConstraints.period.size = -1
-    VesselConstraints.period.count = -1
-  }
+  const VesselConstraints = { }
   VesselConstraints.vskwpType = 'VesselConstraints'
   return VesselConstraints
 }
 VesselConstraintGenerator.vskwpType = 'VesselConstraintGenerator'
+
+
 
 // ParserGenerator -------------------------------------------------------------
 const { parseRegexλ, parseFromλ, parseManyλ } = require('../library/parse2')
@@ -73,8 +50,8 @@ async function ParserGenerator (VesselConstraints) {
     }
   }
 
-  const [ P, S, T, F, $1, $2, $3 ] = baseTokens
-  const tokensToCompound = [ [ P, $1 ], [ P, $2 ], [ P, $3 ], [ T, $1 ], [ T, $2 ], [ T, $3 ] ]
+  const [ P, S, T, F, $1 ] = baseTokens
+  const tokensToCompound = [ [ P, $1 ], [ T, $1 ] ]
   const compoundTokens = []
   for (var i = 0; i < tokensToCompound.length; i++) {
     const compound = parseManyλ(tokensToCompound[i])
@@ -82,7 +59,7 @@ async function ParserGenerator (VesselConstraints) {
     compoundTokens.push(compound)
   }
 
-  const [ P1, P2, P3, T1, T2, T3 ] = compoundTokens
+  const [ P1, T1 ] = compoundTokens
   const parseFromTokens = parseFromλ([...compoundTokens, S, F])
 
   if (isError(parseFromTokens)) {
@@ -141,12 +118,12 @@ function findPeaksAndTroughs(data) {
 async function PreProcessor (WaveData) {
   const splined1_16         = fitSpline(WaveData.series, 0.0625)
   const pnt                 = findPeaksAndTroughs(splined1_16)
-  // plot.plotMany(splined1_16, pnt)
   const PreProcessedWaveData = { pnt }
   PreProcessedWaveData.vskwpType = 'PreProcessedWaveData'
   return PreProcessedWaveData
 }
 PreProcessor.vskwpType = 'PreProcessor'
+
 
 // Tokeniser -------------------------------------------------------------------
 async function Tokeniser (PreProcessedWaveData) {
@@ -162,8 +139,6 @@ async function Tokeniser (PreProcessedWaveData) {
       case 15:
         Sentence.string.push('P1')
         break;
-      default:
-      console.log('FUUUUCK')
     }
   }
   Sentence.string = Sentence.string.join(' ')
@@ -171,6 +146,7 @@ async function Tokeniser (PreProcessedWaveData) {
   return Sentence
 }
 Tokeniser.vskwpType = 'Tokeniser'
+
 
 module.exports = {
   VesselConstraintGenerator, ParserGenerator, PreProcessor, Tokeniser

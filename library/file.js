@@ -37,7 +37,7 @@ const read = filename => new Promise(function(resolve, reject) {
 const write = (filename, data) => new Promise(function(resolve, reject) {
   fs.writeFile(filename, JSON.stringify(data), function (err) {
     if (err) {
-      return resolve(E('write error'))
+      return resolve(err)
     } else return resolve(true)
   })
 })
